@@ -1,4 +1,4 @@
-var map, featureList, boroughSearch = [], propertySearch = [], museumSearch = [];
+var map, featureList, boroughSearch = [], unitSearch = [], museumSearch = [];
 
 $(window).resize(function() {
   sizeLayerControl();
@@ -84,8 +84,8 @@ function syncSidebar() {
   /* Empty sidebar features */
   $("#feature-list tbody").empty();
   /* Loop through theaters layer and add only features which are in the map bounds */
-  properties.eachLayer(function (layer) {
-    if (map.hasLayer(propertyLayer)) {
+  units.eachLayer(function (layer) {
+    if (map.hasLayer(unitLayer)) {
       if (map.getBounds().contains(layer.getLatLng())) {
         $("#feature-list tbody").append('<tr class="feature-row" id="' + L.stamp(layer) + '" lat="' + layer.getLatLng().lat + '" lng="' + layer.getLatLng().lng + '"><td style="vertical-align: middle;"><img width="16" height="18" src="assets/img/theater.png"></td><td class="feature-name">' + layer.feature.properties.NAME + '</td><td style="vertical-align: middle;"><i class="fa fa-chevron-right pull-right"></i></td></tr>');
       }
@@ -161,8 +161,8 @@ var markerClusters = new L.MarkerClusterGroup({
 });
 
 /* Empty layer placeholder to add to layer control for listening when to add/remove theaters to markerClusters layer */
-var propertyLayer = L.geoJson(null);
-var properties = L.geoJson(null, {
+var unitLayer = L.geoJson(null);
+var units = L.geoJson(null, {
   pointToLayer: function (feature, latlng) {
     return L.marker(latlng, {
       icon: L.icon({
@@ -187,10 +187,10 @@ var properties = L.geoJson(null, {
         }
       });
       $("#feature-list tbody").append('<tr class="feature-row" id="' + L.stamp(layer) + '" lat="' + layer.getLatLng().lat + '" lng="' + layer.getLatLng().lng + '"><td style="vertical-align: middle;"><img width="16" height="18" src="assets/img/theater.png"></td><td class="feature-name">' + layer.feature.properties.NAME + '</td><td style="vertical-align: middle;"><i class="fa fa-chevron-right pull-right"></i></td></tr>');
-      propertySearch.push({
+      unitSearch.push({
         name: layer.feature.properties.NAME,
         address: layer.feature.properties.ADDRESS1,
-        source: "Properties",
+        source: "Units",
         id: L.stamp(layer),
         lat: layer.feature.geometry.coordinates[1],
         lng: layer.feature.geometry.coordinates[0]
@@ -199,8 +199,8 @@ var properties = L.geoJson(null, {
   }
 });
 $.getJSON("data/DOITT_THEATER_01_13SEPT2010.geojson", function (data) {
-  properties.addData(data);
-  map.addLayer(propertyLayer);
+  units.addData(data);
+  map.addLayer(unitLayer);
 });
 
 
@@ -214,15 +214,15 @@ map = L.map("map", {
 
 /* Layer control listeners that allow for a single markerClusters layer */
 map.on("overlayadd", function(e) {
-  if (e.layer === propertyLayer) {
-    markerClusters.addLayer(properties);
+  if (e.layer === unitLayer) {
+    markerClusters.addLayer(units);
     syncSidebar();
   }
 });
 
 map.on("overlayremove", function(e) {
-  if (e.layer === propertyLayer) {
-    markerClusters.removeLayer(properties);
+  if (e.layer === unitLayer) {
+    markerClusters.removeLayer(units);
     syncSidebar();
   }
 });
@@ -308,8 +308,8 @@ var baseLayers = {
 };
 
 var groupedOverlays = {
-  "Points of Interest": {
-    "<img src='assets/img/theater.png' width='24' height='28'>&nbsp;Properties": propertyLayer,
+  "Available Units": {
+    "<img src='assets/img/theater.png' width='24' height='28'>&nbsp;Properties": unitLayer,
   },
   "Reference": {
     "Boroughs": boroughs,
@@ -355,13 +355,13 @@ $(document).one("ajaxStop", function () {
     limit: 10
   });
 
-  var propertiesBH = new Bloodhound({
-    name: "Properties",
+  var unitsBH = new Bloodhound({
+    name: "Units",
     datumTokenizer: function (d) {
       return Bloodhound.tokenizers.whitespace(d.name);
     },
     queryTokenizer: Bloodhound.tokenizers.whitespace,
-    local: propertySearch,
+    local: unitSearch,
     limit: 10
   });
 
@@ -396,7 +396,7 @@ $(document).one("ajaxStop", function () {
     limit: 10
   });
   boroughsBH.initialize();
-  propertiesBH.initialize();
+  unitsBH.initialize();
   geonamesBH.initialize();
 
   /* instantiate the typeahead UI */
@@ -412,11 +412,11 @@ $(document).one("ajaxStop", function () {
       header: "<h4 class='typeahead-header'>Boroughs</h4>"
     }
   }, {
-    name: "Properties",
+    name: "Units",
     displayKey: "name",
-    source: propertiesBH.ttAdapter(),
+    source: unitsBH.ttAdapter(),
     templates: {
-      header: "<h4 class='typeahead-header'><img src='assets/img/theater.png' width='24' height='28'>&nbsp;Properties</h4>",
+      header: "<h4 class='typeahead-header'><img src='assets/img/theater.png' width='24' height='28'>&nbsp;Units</h4>",
       suggestion: Handlebars.compile(["{{name}}<br>&nbsp;<small>{{address}}</small>"].join(""))
     }
   }, {
@@ -430,9 +430,9 @@ $(document).one("ajaxStop", function () {
     if (datum.source === "Boroughs") {
       map.fitBounds(datum.bounds);
     }
-    if (datum.source === "Properties") {
-      if (!map.hasLayer(propertyLayer)) {
-        map.addLayer(propertyLayer);
+    if (datum.source === "Units") {
+      if (!map.hasLayer(unitLayer)) {
+        map.addLayer(unitLayer);
       }
       map.setView([datum.lat, datum.lng], 17);
       if (map._layers[datum.id]) {
