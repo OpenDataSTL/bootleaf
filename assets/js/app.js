@@ -1,4 +1,4 @@
-var map, featureList, boroughSearch = [], unitSearch = [], museumSearch = [];
+var map, featureList, boundarySearch = [], unitSearch = [];
 
 $(window).resize(function() {
   sizeLayerControl();
@@ -22,7 +22,7 @@ $("#about-btn").click(function() {
 });
 
 $("#full-extent-btn").click(function() {
-  map.fitBounds(boroughs.getBounds());
+  map.fitBounds(boundaries.getBounds());
   $(".navbar-collapse.in").collapse("hide");
   return false;
 });
@@ -105,20 +105,18 @@ var mapquestOSM = L.tileLayer("http://{s}.mqcdn.com/tiles/1.0.0/osm/{z}/{x}/{y}.
   maxZoom: 19,
   subdomains: ["otile1", "otile2", "otile3", "otile4"],
   attribution: 'Tiles courtesy of <a href="http://www.mapquest.com/" target="_blank">MapQuest</a> <img src="http://developer.mapquest.com/content/osm/mq_logo.png">. Map data (c) <a href="http://www.openstreetmap.org/" target="_blank">OpenStreetMap</a> contributors, CC-BY-SA.'
-});
-var mapquestOAM = L.tileLayer("http://{s}.mqcdn.com/tiles/1.0.0/sat/{z}/{x}/{y}.jpg", {
-  maxZoom: 18,
-  subdomains: ["oatile1", "oatile2", "oatile3", "oatile4"],
-  attribution: 'Tiles courtesy of <a href="http://www.mapquest.com/" target="_blank">MapQuest</a>. Portions Courtesy NASA/JPL-Caltech and U.S. Depart. of Agriculture, Farm Service Agency'
-});
-var mapquestHYB = L.layerGroup([L.tileLayer("http://{s}.mqcdn.com/tiles/1.0.0/sat/{z}/{x}/{y}.jpg", {
-  maxZoom: 18,
-  subdomains: ["oatile1", "oatile2", "oatile3", "oatile4"]
-}), L.tileLayer("http://{s}.mqcdn.com/tiles/1.0.0/hyb/{z}/{x}/{y}.png", {
-  maxZoom: 19,
-  subdomains: ["oatile1", "oatile2", "oatile3", "oatile4"],
-  attribution: 'Labels courtesy of <a href="http://www.mapquest.com/" target="_blank">MapQuest</a> <img src="http://developer.mapquest.com/content/osm/mq_logo.png">. Map data (c) <a href="http://www.openstreetmap.org/" target="_blank">OpenStreetMap</a> contributors, CC-BY-SA. Portions Courtesy NASA/JPL-Caltech and U.S. Depart. of Agriculture, Farm Service Agency'
-})]);
+}); 
+
+
+var mapboxTiles = L.tileLayer('https://{s}.tiles.mapbox.com/v4/eleanortutt.ln502hg2/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoiZWxlYW5vcnR1dHQiLCJhIjoiamFJNllWUSJ9.OJrsjtY1wqV3oG_eAYH2xw', {
+    maxZoom: 19,
+	attribution: '<a href="http://www.mapbox.com/about/maps/" target="_blank">Terms &amp; Feedback</a>'
+}); 
+
+var mapboxComic = L.tileLayer('https://{s}.tiles.mapbox.com/v4/eleanortutt.ln5c6ji0/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoiZWxlYW5vcnR1dHQiLCJhIjoiamFJNllWUSJ9.OJrsjtY1wqV3oG_eAYH2xw', {
+    maxZoom: 19,
+	attribution: '<a href="http://www.mapbox.com/about/maps/" target="_blank">Terms &amp; Feedback</a>'
+}); 
 
 /* Overlay Layers */
 var highlight = L.geoJson(null);
@@ -129,26 +127,27 @@ var highlightStyle = {
   radius: 10
 };
 
-var boroughs = L.geoJson(null, {
+var boundaries = L.geoJson(null, {
   style: function (feature) {
     return {
-      color: "black",
+      color: "#333333",
       fill: false,
-      opacity: 1,
+	  weight: 0,
+      opacity: 0,
       clickable: false
     };
   },
   onEachFeature: function (feature, layer) {
-    boroughSearch.push({
-      name: layer.feature.properties.BoroName,
-      source: "Boroughs",
+    boundarySearch.push({
+      name: layer.feature.properties.NAME,
+      source: "Boundaries",
       id: L.stamp(layer),
       bounds: layer.getBounds()
     });
   }
 });
-$.getJSON("data/boroughs.geojson", function (data) {
-  boroughs.addData(data);
+$.getJSON("data/boundaries.geojson", function (data) {
+  boundaries.addData(data);
 });
 
 
@@ -205,9 +204,9 @@ $.getJSON("data/DOITT_THEATER_01_13SEPT2010.geojson", function (data) {
 
 
 map = L.map("map", {
-  zoom: 10,
+  zoom: 13,
   center: [38.627222,  -90.197778],
-  layers: [mapquestOSM, boroughs, markerClusters, highlight],
+  layers: [mapboxTiles, boundaries, markerClusters, highlight],
   zoomControl: false,
   attributionControl: false
 });
@@ -301,24 +300,32 @@ if (document.body.clientWidth <= 767) {
   var isCollapsed = false;
 }
 
+
+
+
 var baseLayers = {
-  "Street Map": mapquestOSM,
-  "Aerial Imagery": mapquestOAM,
-  "Imagery with Streets": mapquestHYB
+	"Street Map": mapboxTiles,
+	"Comic Books!": mapboxComic
 };
 
 var groupedOverlays = {
   "Available Units": {
-    "<img src='assets/img/theater.png' width='24' height='28'>&nbsp;Properties": unitLayer,
+    "Units": unitLayer,
   },
   "Reference": {
-    "Boroughs": boroughs,
+    "Boundaries": boundaries,
   }
 };
 
-var layerControl = L.control.groupedLayers(baseLayers, groupedOverlays, {
+/* This creates a layer control box - we could add things like public transit, etc., but we could also keep it simple without. */
+
+
+
+ var layerControl = L.control.groupedLayers(baseLayers, {
   collapsed: isCollapsed
-}).addTo(map);
+}).addTo(map); 
+
+
 
 /* Highlight search box text on click */
 $("#searchbox").click(function () {
@@ -340,18 +347,18 @@ $("#featureModal").on("hidden.bs.modal", function (e) {
 $(document).one("ajaxStop", function () {
   $("#loading").hide();
   sizeLayerControl();
-  /* Fit map to boroughs bounds */
-  map.fitBounds(boroughs.getBounds());
+  /* Fit map to boundaries bounds */
+  /* map.fitBounds(boundaries.getBounds()); */
   featureList = new List("features", {valueNames: ["feature-name"]});
   featureList.sort("feature-name", {order:"asc"});
 
-  var boroughsBH = new Bloodhound({
-    name: "Boroughs",
+  var boundariesBH = new Bloodhound({
+    name: "Boundaries",
     datumTokenizer: function (d) {
       return Bloodhound.tokenizers.whitespace(d.name);
     },
     queryTokenizer: Bloodhound.tokenizers.whitespace,
-    local: boroughSearch,
+    local: boundarySearch,
     limit: 10
   });
 
@@ -365,39 +372,9 @@ $(document).one("ajaxStop", function () {
     limit: 10
   });
 
-  var geonamesBH = new Bloodhound({
-    name: "GeoNames",
-    datumTokenizer: function (d) {
-      return Bloodhound.tokenizers.whitespace(d.name);
-    },
-    queryTokenizer: Bloodhound.tokenizers.whitespace,
-    remote: {
-      url: "http://api.geonames.org/searchJSON?username=bootleaf&featureClass=P&maxRows=5&countryCode=US&name_startsWith=%QUERY",
-      filter: function (data) {
-        return $.map(data.geonames, function (result) {
-          return {
-            name: result.name + ", " + result.adminCode1,
-            lat: result.lat,
-            lng: result.lng,
-            source: "GeoNames"
-          };
-        });
-      },
-      ajax: {
-        beforeSend: function (jqXhr, settings) {
-          settings.url += "&east=" + map.getBounds().getEast() + "&west=" + map.getBounds().getWest() + "&north=" + map.getBounds().getNorth() + "&south=" + map.getBounds().getSouth();
-          $("#searchicon").removeClass("fa-search").addClass("fa-refresh fa-spin");
-        },
-        complete: function (jqXHR, status) {
-          $('#searchicon').removeClass("fa-refresh fa-spin").addClass("fa-search");
-        }
-      }
-    },
-    limit: 10
-  });
-  boroughsBH.initialize();
+
+  boundariesBH.initialize();
   unitsBH.initialize();
-  geonamesBH.initialize();
 
   /* instantiate the typeahead UI */
   $("#searchbox").typeahead({
@@ -405,11 +382,11 @@ $(document).one("ajaxStop", function () {
     highlight: true,
     hint: false
   }, {
-    name: "Boroughs",
+    name: "Boundaries",
     displayKey: "name",
-    source: boroughsBH.ttAdapter(),
+    source: boundariesBH.ttAdapter(),
     templates: {
-      header: "<h4 class='typeahead-header'>Boroughs</h4>"
+      header: "<h4 class='typeahead-header'>Boundaries</h4>"
     }
   }, {
     name: "Units",
@@ -419,15 +396,8 @@ $(document).one("ajaxStop", function () {
       header: "<h4 class='typeahead-header'><img src='assets/img/theater.png' width='24' height='28'>&nbsp;Units</h4>",
       suggestion: Handlebars.compile(["{{name}}<br>&nbsp;<small>{{address}}</small>"].join(""))
     }
-  }, {
-    name: "GeoNames",
-    displayKey: "name",
-    source: geonamesBH.ttAdapter(),
-    templates: {
-      header: "<h4 class='typeahead-header'><img src='assets/img/globe.png' width='25' height='25'>&nbsp;GeoNames</h4>"
-    }
   }).on("typeahead:selected", function (obj, datum) {
-    if (datum.source === "Boroughs") {
+    if (datum.source === "Boundaries") {
       map.fitBounds(datum.bounds);
     }
     if (datum.source === "Units") {
@@ -438,9 +408,6 @@ $(document).one("ajaxStop", function () {
       if (map._layers[datum.id]) {
         map._layers[datum.id].fire("click");
       }
-    }
-    if (datum.source === "GeoNames") {
-      map.setView([datum.lat, datum.lng], 14);
     }
     if ($(".navbar-collapse").height() > 50) {
       $(".navbar-collapse").collapse("hide");
@@ -457,6 +424,7 @@ $(document).one("ajaxStop", function () {
 });
 
 // Leaflet patch to make layer control scrollable on touch browsers
+
 var container = $(".leaflet-control-layers")[0];
 if (!L.Browser.touch) {
   L.DomEvent
@@ -464,4 +432,4 @@ if (!L.Browser.touch) {
   .disableScrollPropagation(container);
 } else {
   L.DomEvent.disableClickPropagation(container);
-}
+} 
